@@ -31,12 +31,23 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #10b981;
+      border-radius: 9999px;
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col custom-scrollbar selection:bg-brand-500 selection:text-white">
 
   <!-- Header -->
-  <header class="border-b border-brand-900/40 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+  <header class="border-b border-brand-900/40 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
     <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-extrabold">
@@ -157,7 +168,7 @@
             </button>
           </div>
 
-          <div id="licenses-container" class="space-y-2.5 max-h-[450px] overflow-y-auto pr-1">
+          <div id="licenses-container" class="space-y-2.5 max-h-[520px] overflow-y-auto custom-scrollbar pr-1">
             <!-- Rendered dynamically -->
           </div>
         </div>
@@ -168,8 +179,74 @@
 
   </main>
 
+  <!-- EDIT MODAL (Sửa tất cả thông tin khách hàng) -->
+  <div id="edit-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-brand-950 border border-brand-800 flex items-center justify-center text-brand-400">
+            <i data-lucide="edit-3" class="w-4 h-4"></i>
+          </div>
+          <h3 class="font-bold text-white text-base">Chỉnh sửa Bản quyền Khách hàng</h3>
+        </div>
+        <button onclick="closeEditModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <input type="hidden" id="edit-old-hwid">
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Tên khách hàng:</label>
+          <input type="text" id="edit-cust-name" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Mã máy (HWID):</label>
+          <input type="text" id="edit-cust-hwid" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 font-mono uppercase text-brand-300 focus:outline-none focus:ring-1 focus:ring-brand-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Ngày kích hoạt:</label>
+            <input type="date" id="edit-cust-created" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Ngày hết hạn:</label>
+            <input type="date" id="edit-cust-expires" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Gói / Ghi chú:</label>
+          <input type="text" id="edit-cust-plan" placeholder="VD: Bản quyền VIP" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Trạng thái bản quyền:</label>
+          <select id="edit-cust-active" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+            <option value="true">✅ Đang kích hoạt (Cho phép dùng)</option>
+            <option value="false">🚫 Tạm khóa (Chặn sử dụng)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 pt-3 border-t border-slate-800">
+        <button onclick="saveEditedLicense()" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs rounded-xl transition shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-1.5">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Lưu thay đổi</span>
+        </button>
+        <button onclick="closeEditModal()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+          Hủy
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let adminToken = localStorage.getItem("xteam_admin_token") || "";
+    let licensesCache = [];
 
     document.addEventListener("DOMContentLoaded", () => {
       lucide.createIcons();
@@ -209,7 +286,7 @@
         if (fbEventSource) fbEventSource.close();
         fbEventSource = new EventSource("https://xteam-328bc-default-rtdb.firebaseio.com/licenses.json");
         fbEventSource.addEventListener("put", (e) => {
-          fetchLicenses(); // Tự động đồng bộ ngay lập tức khi Firebase có thay đổi
+          fetchLicenses();
         });
         fbEventSource.addEventListener("patch", (e) => {
           fetchLicenses();
@@ -217,7 +294,6 @@
       } catch (err) {
         console.warn("SSE fallback to polling:", err);
       }
-      // Định kỳ 5s đồng bộ 1 lần
       setInterval(fetchLicenses, 5000);
     }
 
@@ -232,7 +308,8 @@
           return;
         }
         const data = await res.json();
-        renderLicenses(data.licenses || []);
+        licensesCache = data.licenses || [];
+        renderLicenses(licensesCache);
       } catch (err) {
         console.error(err);
       }
@@ -247,10 +324,12 @@
         return;
       }
 
-      list.forEach(lic => {
+      list.forEach((lic, idx) => {
         const isExp = lic.days_left <= 0;
+        const isLocked = lic.active === false;
         const div = document.createElement("div");
         div.className = `p-3.5 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+          isLocked ? "bg-slate-950/40 border-yellow-800/40 opacity-75" :
           isExp ? "bg-red-950/20 border-red-900/40" : "bg-slate-950/60 border-slate-800"
         }`;
 
@@ -258,11 +337,18 @@
           <div>
             <div class="flex items-center space-x-2 mb-1">
               <span class="text-sm font-bold text-white">${lic.customer_name}</span>
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded ${isExp ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-brand-500/20 text-brand-400 border border-brand-500/30'}">
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded ${
+                isLocked ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                isExp ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
+                'bg-brand-500/20 text-brand-400 border border-brand-500/30'
+              }">
                 ${lic.hwid}
               </span>
+              ${isLocked ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/60 text-yellow-300 font-semibold">Tạm khóa</span>' : ''}
             </div>
-            <div class="flex items-center space-x-3 text-xs text-slate-400">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+              <span>Kích hoạt: <strong class="text-slate-300">${lic.created_at || '—'}</strong></span>
+              <span>•</span>
               <span>Hết hạn: <strong class="${isExp ? 'text-red-400' : 'text-slate-200'}">${lic.expires_at}</strong></span>
               <span>•</span>
               <span>${isExp ? '<span class="text-red-400 font-bold">Đã hết hạn</span>' : 'Còn lại: <strong class="text-brand-400">' + lic.days_left + ' ngày</strong>'}</span>
@@ -285,7 +371,14 @@
             <button onclick="promptCustomExtend('${lic.hwid}', '${lic.customer_name}')" class="px-2 py-1 bg-slate-800 hover:bg-brand-600 text-slate-300 hover:text-white rounded text-[11px] font-semibold transition" title="Tự nhập số ngày gia hạn">
               + Tùy ý
             </button>
-            <button onclick="deleteLicense('${lic.hwid}')" class="p-1.5 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded text-xs transition ml-1" title="Xóa khách hàng này">
+            
+            <!-- Nút Sửa (Icon cái bút) -->
+            <button onclick="openEditModalByIndex(${idx})" class="p-1.5 bg-slate-800 hover:bg-brand-600 text-brand-300 hover:text-white rounded text-xs transition ml-1" title="Chỉnh sửa toàn bộ thông tin">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            </button>
+
+            <!-- Nút Xóa -->
+            <button onclick="deleteLicense('${lic.hwid}')" class="p-1.5 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded text-xs transition" title="Xóa khách hàng này">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           </div>
@@ -350,6 +443,68 @@
         }
       } catch (err) {
         alert("Lỗi kết nối: " + err.message);
+      }
+    }
+
+    // Mở Modal Chỉnh Sửa
+    function openEditModalByIndex(idx) {
+      const lic = licensesCache[idx];
+      if (!lic) return;
+
+      document.getElementById("edit-old-hwid").value = lic.hwid || "";
+      document.getElementById("edit-cust-name").value = lic.customer_name || "";
+      document.getElementById("edit-cust-hwid").value = lic.hwid || "";
+      document.getElementById("edit-cust-created").value = lic.created_at || new Date().toISOString().split("T")[0];
+      document.getElementById("edit-cust-expires").value = lic.expires_at || "";
+      document.getElementById("edit-cust-plan").value = lic.plan || "Bản quyền VIP";
+      document.getElementById("edit-cust-active").value = lic.active !== false ? "true" : "false";
+
+      document.getElementById("edit-modal").classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    function closeEditModal() {
+      document.getElementById("edit-modal").classList.add("hidden");
+    }
+
+    async function saveEditedLicense() {
+      const oldHwid = document.getElementById("edit-old-hwid").value.trim();
+      const name = document.getElementById("edit-cust-name").value.trim();
+      const hwid = document.getElementById("edit-cust-hwid").value.trim();
+      const created = document.getElementById("edit-cust-created").value;
+      const expires = document.getElementById("edit-cust-expires").value;
+      const plan = document.getElementById("edit-cust-plan").value.trim();
+      const active = document.getElementById("edit-cust-active").value === "true";
+
+      if (!name || !hwid || !expires) {
+        return alert("Vui lòng không để trống Tên, Mã máy và Ngày hết hạn!");
+      }
+
+      const payload = {
+        old_hwid: oldHwid,
+        customer_name: name,
+        hwid: hwid,
+        created_at: created,
+        expires_at: expires,
+        plan: plan,
+        active: active
+      };
+
+      try {
+        const res = await fetch("/api/admin/licenses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Admin-Key": adminToken },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeEditModal();
+          fetchLicenses();
+        } else {
+          alert(data.message);
+        }
+      } catch (err) {
+        alert("Lỗi cập nhật: " + err.message);
       }
     }
 

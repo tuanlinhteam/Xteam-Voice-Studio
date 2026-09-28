@@ -3,7 +3,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Key");
 
   if (req.method === "OPTIONS") {
@@ -45,9 +45,9 @@ module.exports = async (req, res) => {
     }
   }
 
-  // POST: Kích hoạt mới hoặc Gia hạn khách hàng trên Firebase
-  if (req.method === "POST") {
-    const { customer_name, hwid, days, expires_at, plan, active } = req.body;
+  // POST / PUT: Kích hoạt mới, Sửa toàn bộ thông tin hoặc Gia hạn trên Firebase
+  if (req.method === "POST" || req.method === "PUT") {
+    const { customer_name, hwid, old_hwid, created_at, days, expires_at, plan, active } = req.body;
     
     if (!hwid || !customer_name) {
       return res.status(400).json({ success: false, message: "Vui lòng nhập đầy đủ Mã máy và Tên khách hàng!" });
@@ -66,17 +66,26 @@ module.exports = async (req, res) => {
       finalExpire = d.toISOString().split("T")[0];
     }
 
+    const finalCreatedAt = created_at ? created_at.trim() : new Date().toISOString().split("T")[0];
+
     const newLic = {
       customer_name: customer_name.trim(),
       hwid: cleanHwid,
-      created_at: new Date().toISOString().split("T")[0],
+      created_at: finalCreatedAt,
       expires_at: finalExpire,
       plan: plan || "Bản quyền VIP",
-      active: active !== undefined ? active : true,
+      active: active !== undefined ? (active === true || active === "true") : true,
       updated_at: new Date().toISOString()
     };
 
     try {
+      // Nếu Admin sửa đổi Mã máy (old_hwid != cleanHwid), tự động xóa bản ghi mã cũ
+      if (old_hwid && old_hwid.trim().toUpperCase() !== cleanHwid) {
+        await fetch(`${FIREBASE_DB_URL}/licenses/${encodeURIComponent(old_hwid.trim().toUpperCase())}.json`, {
+          method: "DELETE"
+        });
+      }
+
       // Lưu realtime vào Firebase
       await fetch(`${FIREBASE_DB_URL}/licenses/${encodeURIComponent(cleanHwid)}.json`, {
         method: "PUT",
@@ -86,7 +95,7 @@ module.exports = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        message: `Đã kích hoạt realtime cho khách hàng ${customer_name}!`,
+        message: `Đã cập nhật thông tin khách hàng ${customer_name}!`,
         license: newLic
       });
     } catch (err) {
