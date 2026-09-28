@@ -1,0 +1,10 @@
+{
+  "name": "xteam-voice-license-server",
+  "version": "1.0.0",
+  "description": "Vercel License Management Server for Xteam Voice Studio",
+  "main": "api/check-license.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xteam License Manager — Quản lý Bản quyền Khách hàng</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+              950: '#022c22',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-brand-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="border-b border-brand-900/40 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-extrabold">
+          <i data-lucide="shield-check" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold bg-gradient-to-r from-white to-brand-300 bg-clip-text text-transparent">
+            Xteam License Manager
+          </h1>
+          <p class="text-xs text-slate-400">Hệ thống Quản lý Kích hoạt Bản quyền Khách hàng</p>
+        </div>
+      </div>
+
+      <div id="auth-status" class="flex items-center space-x-2">
+        <button onclick="logoutAdmin()" id="btn-logout" class="hidden px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 rounded-lg transition">Đăng xuất</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-section" class="max-w-md mx-auto bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5 my-12">
+      <div class="text-center space-y-2">
+        <div class="w-12 h-12 bg-brand-950 border border-brand-800/80 rounded-2xl flex items-center justify-center mx-auto text-brand-400">
+          <i data-lucide="lock" class="w-6 h-6"></i>
+        </div>
+        <h2 class="text-xl font-bold text-white">Đăng nhập Quản trị viên</h2>
+        <p class="text-xs text-slate-400">Nhập mật khẩu Admin để quản lý kích hoạt bản quyền</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <input type="password" id="admin-pass" placeholder="Mật khẩu Admin (Mặc định: xteam2026)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <button onclick="loginAdmin()" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-brand-500/25 flex items-center justify-center space-x-2">
+          <span>Truy cập Dashboard</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD (Visible after login) -->
+    <div id="dashboard-section" class="hidden space-y-6">
+
+      <!-- Top Stats & Add License Form -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Form Add License -->
+        <div class="lg:col-span-1 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="border-b border-slate-800 pb-3">
+            <h3 class="font-bold text-white text-base flex items-center space-x-2">
+              <i data-lucide="user-plus" class="w-4 h-4 text-brand-400"></i>
+              <span>Kích hoạt Khách hàng Mới</span>
+            </h3>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Tên khách hàng:</label>
+              <input type="text" id="cust-name" placeholder="VD: Anh Nam - Hà Nội" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Mã máy của khách (HWID):</label>
+              <input type="text" id="cust-hwid" placeholder="VD: XTM-889B-AD92-6AC8" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono uppercase text-brand-300 focus:outline-none focus:ring-1 focus:ring-brand-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Thời hạn sử dụng:</label>
+              <select id="cust-duration" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                <option value="30">1 Tháng (30 ngày)</option>
+                <option value="90">3 Tháng (90 ngày)</option>
+                <option value="180">6 Tháng (180 ngày)</option>
+                <option value="365">1 Năm (365 ngày)</option>
+                <option value="3650">Vĩnh viễn (10 Năm)</option>
+              </select>
+            </div>
+
+            <button onclick="submitNewLicense()" class="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs rounded-lg transition shadow-md shadow-brand-500/20 flex items-center justify-center space-x-1.5">
+              <i data-lucide="check-circle" class="w-4 h-4"></i>
+              <span>Kích hoạt ngay</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- License List (2 cols) -->
+        <div class="lg:col-span-2 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <h3 class="font-bold text-white text-base flex items-center space-x-2">
+                <i data-lucide="users" class="w-4 h-4 text-brand-400"></i>
+                <span>Danh sách Khách hàng Đã Kích hoạt</span>
+              </h3>
+            </div>
+            <button onclick="fetchLicenses()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs flex items-center space-x-1">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Tải lại</span>
+            </button>
+          </div>
+
+          <div id="licenses-container" class="space-y-2.5 max-h-[450px] overflow-y-auto pr-1">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let adminToken = localStorage.getItem("xteam_admin_token") || "";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      if (adminToken) {
+        showDashboard();
+      }
+    });
+
+    function loginAdmin() {
+      const pass = document.getElementById("admin-pass").value.trim();
+      if (!pass) return alert("Vui lòng nhập mật khẩu!");
+      adminToken = pass;
+      localStorage.setItem("xteam_admin_token", pass);
+      showDashboard();
+    }
+
+    function logoutAdmin() {
+      localStorage.removeItem("xteam_admin_token");
+      adminToken = "";
+      location.reload();
+    }
+
+    async function showDashboard() {
+      document.getElementById("login-section").classList.add("hidden");
+      document.getElementById("dashboard-section").classList.remove("hidden");
+      document.getElementById("btn-logout").classList.remove("hidden");
+      await fetchLicenses();
+    }
+
+    async function fetchLicenses() {
+      try {
+        const res = await fetch("/api/admin/licenses", {
+          headers: { "X-Admin-Key": adminToken }
+        });
+        if (res.status === 401) {
+          alert("Mật khẩu Admin không chính xác!");
+          logoutAdmin();
+          return;
+        }
+        const data = await res.json();
+        renderLicenses(data.licenses || []);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderLicenses(list) {
+      const container = document.getElementById("licenses-container");
+      container.innerHTML = "";
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-slate-500 text-xs">Chưa có khách hàng nào được kích hoạt.</div>`;
+        return;
+      }
+
+      list.forEach(lic => {
+        const isExp = lic.days_left <= 0;
+        const div = document.createElement("div");
+        div.className = `p-3.5 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+          isExp ? "bg-red-950/20 border-red-900/40" : "bg-slate-950/60 border-slate-800"
+        }`;
+
+        div.innerHTML = `
+          <div>
+            <div class="flex items-center space-x-2 mb-1">
+              <span class="text-sm font-bold text-white">${lic.customer_name}</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded ${isExp ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-brand-500/20 text-brand-400 border border-brand-500/30'}">
+                ${lic.hwid}
+              </span>
+            </div>
+            <div class="flex items-center space-x-3 text-xs text-slate-400">
+              <span>Hết hạn: <strong class="${isExp ? 'text-red-400' : 'text-slate-200'}">${lic.expires_at}</strong></span>
+              <span>•</span>
+              <span>${isExp ? '<span class="text-red-400 font-bold">Đã hết hạn</span>' : 'Còn lại: <strong class="text-brand-400">' + lic.days_left + ' ngày</strong>'}</span>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button onclick="extendLicense('${lic.hwid}', '${lic.customer_name}', 30)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-brand-600 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition" title="Gia hạn thêm 30 ngày">
+              +30 Ngày
+            </button>
+            <button onclick="extendLicense('${lic.hwid}', '${lic.customer_name}', 365)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-brand-600 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition" title="Gia hạn 1 Năm">
+              +1 Năm
+            </button>
+            <button onclick="deleteLicense('${lic.hwid}')" class="p-2 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-lg text-xs transition" title="Xóa khách hàng này">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+      lucide.createIcons();
+    }
+
+    async function submitNewLicense() {
+      const name = document.getElementById("cust-name").value.trim();
+      const hwid = document.getElementById("cust-hwid").value.trim();
+      const days = document.getElementById("cust-duration").value;
+
+      if (!name || !hwid) return alert("Vui lòng nhập đầy đủ tên khách và mã máy!");
+
+      try {
+        const res = await fetch("/api/admin/licenses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Admin-Key": adminToken },
+          body: JSON.stringify({ customer_name: name, hwid: hwid, days: days })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(data.message);
+          document.getElementById("cust-name").value = "";
+          document.getElementById("cust-hwid").value = "";
+          fetchLicenses();
+        } else {
+          alert(data.message);
+        }
+      } catch (err) {
+        alert("Lỗi kết nối: " + err.message);
+      }
+    }
+
+    async function extendLicense(hwid, name, days) {
+      if (!confirm(`Bạn có muốn gia hạn thêm ${days} ngày cho khách hàng "${name}"?`)) return;
+      try {
+        await fetch("/api/admin/licenses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Admin-Key": adminToken },
+          body: JSON.stringify({ customer_name: name, hwid: hwid, days: days })
+        });
+        fetchLicenses();
+      } catch (err) {}
+    }
+
+    async function deleteLicense(hwid) {
+      if (!confirm(`Bạn có chắc muốn xóa bản quyền của mã máy ${hwid}?`)) return;
+      try {
+        await fetch(`/api/admin/licenses?hwid=${hwid}`, {
+          method: "DELETE",
+          headers: { "X-Admin-Key": adminToken }
+        });
+        fetchLicenses();
+      } catch (err) {}
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.spec
+.env
+
+# PyCharm / VS Code
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/

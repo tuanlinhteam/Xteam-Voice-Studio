@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/api/check-license",
+      "dest": "/api/check-license.js"
+    },
+    {
+      "src": "/api/admin/licenses",
+      "dest": "/api/admin/licenses.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ]
+}

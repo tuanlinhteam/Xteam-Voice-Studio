@@ -1,43 +1,18 @@
-# Quyền riêng tư — CIT Voice Studio
+# Quyền riêng tư — Xteam Voice Studio
 
-**CIT Voice Studio không thu thập dữ liệu của bạn.** Không cần tài khoản, không có
-quảng cáo, không gửi thống kê sử dụng hay báo lỗi về cho tác giả.
+**Xteam Voice Studio không thu thập dữ liệu của bạn.** Ứng dụng chạy hoàn toàn cục bộ (offline) trên máy tính của bạn, không cần tài khoản, không có quảng cáo, không gửi dữ liệu âm thanh hay văn bản ra bên ngoài máy chủ.
 
-## Dữ liệu nằm ở đâu
+## 📂 Dữ liệu nằm ở đâu
 
-Mọi thứ bạn nhập và tạo ra chỉ nằm trên máy của bạn:
+Mọi dữ liệu bạn nhập và tạo ra chỉ được lưu trữ an toàn trên chính máy tính của bạn:
+- Văn bản, tệp âm thanh (WAV/MP3) và phụ đề SRT đã tạo.
+- Danh sách giọng đã nhân bản và tệp âm thanh mẫu.
+- Từ điển phát âm cá nhân và các thiết lập hệ thống.
 
-- văn bản, audio và phụ đề đã tạo (tab Lịch sử);
-- giọng đã nhân bản và file giọng mẫu bạn đưa vào;
-- từ điển phát âm và các cài đặt.
+## 🌐 Hoạt động mạng
 
-Vị trí thư mục dữ liệu ghi trong README, mục "Dữ liệu được lưu ở đâu". Gỡ ứng dụng hoặc xoá
-các thư mục đó là xoá hết.
+Ứng dụng hoạt động hoàn toàn độc lập mà không cần kết nối Internet sau khi cài đặt.
 
-## Khi nào ứng dụng dùng mạng
+## 🎧 Quyền sở hữu tệp âm thanh
 
-Sau khi cài, ứng dụng chạy được hoàn toàn không cần Internet. Nó chỉ kết nối ra ngoài
-trong các trường hợp sau, và chỉ tải xuống, không gửi nội dung của bạn đi:
-
-| Trường hợp | Kết nối tới | Mặc định |
-|---|---|---|
-| Kiểm tra bản mới (bạn bật trong Cài đặt, hoặc bấm "Kiểm tra cập nhật") | GitHub, tối đa một lần mỗi ngày | **Tắt** |
-| Bạn bấm Tải về một mô hình không kèm sẵn | Hugging Face | Chỉ khi bạn bấm |
-| Bạn bấm "Cài hỗ trợ GPU" | PyPI, download.pytorch.org, GitHub / releases.astral.sh | Chỉ khi bạn bấm |
-| Bạn bấm một đường link trong ứng dụng | Trang web đó, mở bằng trình duyệt | Chỉ khi bạn bấm |
-
-Như mọi kết nối Internet, các máy chủ trên thấy địa chỉ IP của bạn và tên phần mềm
-(`CIT-Voice-Studio/<phiên bản>`). Ứng dụng không gửi kèm văn bản, audio hay thông tin cá
-nhân nào.
-
-## Cho máy khác truy cập (API)
-
-Tính năng này **tắt sẵn**. Khi bạn bật, các máy khác trong mạng gọi được API tạo giọng
-của máy bạn bằng khoá API. Văn bản chúng gửi tới được xử lý ngay trên máy bạn. Kết nối
-trong mạng nội bộ dùng HTTP không mã hoá, nên chỉ bật trong mạng bạn tin tưởng.
-
-## Audio tạo ra
-
-File WAV/MP3 ứng dụng xuất ra có ghi chú "AI-generated speech … CIT Voice Studio"
-trong phần thông tin của file (theo yêu cầu đánh dấu nội dung do AI tạo ra). Ghi chú này
-không chứa thông tin cá nhân nào.
+Mọi tệp âm thanh do bạn tạo ra thông qua **Xteam Voice Studio** thuộc quyền sở hữu hoàn toàn của bạn.

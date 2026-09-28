@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xteam Voice Studio — Chuyển văn bản tiếng Việt thành giọng nói</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              300: '#6ee7b7',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+              950: '#022c22',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #10b981;
+      border-radius: 9999px;
+    }
+    .emerald-glow {
+      box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.3);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col custom-scrollbar selection:bg-brand-500 selection:text-white">
+
+  <!-- Header / Navbar -->
+  <header class="border-b border-brand-900/40 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-extrabold text-xl">
+          <i data-lucide="waves" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-xl font-bold bg-gradient-to-r from-white via-brand-100 to-brand-400 bg-clip-text text-transparent">
+              Xteam Voice Studio
+            </h1>
+            <span class="px-2 py-0.5 text-xs font-semibold bg-brand-500/20 text-brand-400 border border-brand-500/30 rounded-full">v1.0.1</span>
+          </div>
+          <p class="text-xs text-slate-400">Chuyển văn bản thành giọng nói tiếng Việt AI 100% Offline</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex items-center space-x-1 sm:space-x-2 bg-slate-950/60 p-1.5 rounded-xl border border-slate-800/80">
+        <button onclick="switchTab('tts')" id="nav-tts" class="tab-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-2 bg-brand-600 text-white shadow-sm">
+          <i data-lucide="mic" class="w-4 h-4"></i>
+          <span>TTS Studio</span>
+        </button>
+        <button onclick="switchTab('clone')" id="nav-clone" class="tab-btn px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition flex items-center space-x-2">
+          <i data-lucide="copy" class="w-4 h-4"></i>
+          <span>Nhân bản giọng</span>
+        </button>
+        <button onclick="switchTab('batch')" id="nav-batch" class="tab-btn px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition flex items-center space-x-2">
+          <i data-lucide="layers" class="w-4 h-4"></i>
+          <span>Tạo hàng loạt</span>
+        </button>
+        <button onclick="switchTab('history')" id="nav-history" class="tab-btn px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition flex items-center space-x-2">
+          <i data-lucide="history" class="w-4 h-4"></i>
+          <span>Lịch sử</span>
+        </button>
+        <button onclick="switchTab('settings')" id="nav-settings" class="tab-btn px-3.5 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition flex items-center space-x-2">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+          <span>Cài đặt & API</span>
+        </button>
+      </nav>
+
+      <!-- Right Status Badges & License -->
+      <div class="hidden md:flex items-center space-x-3">
+        <div id="license-badge" onclick="openLicenseModal()" class="cursor-pointer flex items-center space-x-2 text-xs bg-slate-950/80 border border-slate-800 hover:border-brand-500/50 px-3 py-1.5 rounded-lg transition shadow-sm" title="Bấm để xem thông tin bản quyền và mã máy">
+          <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" id="lic-dot"></span>
+          <span id="lic-text" class="text-slate-300 font-medium">Đang kiểm tra bản quyền...</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- TAB 1: TTS STUDIO -->
+    <div id="tab-tts" class="tab-content grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Left Column: Text Area & Tools (7 cols) -->
+      <div class="lg:col-span-7 flex flex-col space-y-4">
+        
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col space-y-4">
+          
+          <!-- Top Toolbar -->
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Chèn cảm xúc:</span>
+              <button onclick="insertTag('[cười]')" class="px-2.5 py-1 text-xs bg-brand-950 text-brand-300 border border-brand-800/60 hover:bg-brand-900/80 hover:border-brand-500 rounded-md transition font-medium">😊 [cười]</button>
+              <button onclick="insertTag('[thở dài]')" class="px-2.5 py-1 text-xs bg-brand-950 text-brand-300 border border-brand-800/60 hover:bg-brand-900/80 hover:border-brand-500 rounded-md transition font-medium">💨 [thở dài]</button>
+              <button onclick="insertTag('[hắng giọng]')" class="px-2.5 py-1 text-xs bg-brand-950 text-brand-300 border border-brand-800/60 hover:bg-brand-900/80 hover:border-brand-500 rounded-md transition font-medium">🗣️ [hắng giọng]</button>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <button onclick="insertTag('[nghỉ 1s]')" class="px-2 py-1 text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-md transition">⏱️ [nghỉ 1s]</button>
+              <button onclick="insertTag('[nghỉ 2s]')" class="px-2 py-1 text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-md transition">⏱️ [nghỉ 2s]</button>
+              <button onclick="cleanText()" title="Làm sạch khoảng trắng thừa và ngắt dòng" class="px-2.5 py-1 text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-md transition flex items-center space-x-1">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-400"></i>
+                <span>Làm sạch</span>
+              </button>
+              <button onclick="openDictModal()" title="Từ điển phát âm" class="px-2.5 py-1 text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-md transition flex items-center space-x-1">
+                <i data-lucide="book-a" class="w-3.5 h-3.5 text-brand-400"></i>
+                <span>Từ điển</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Input Textarea -->
+          <div class="relative">
+            <textarea id="tts-input" rows="12" placeholder="Nhập hoặc dán văn bản tiếng Việt bạn muốn chuyển thành giọng nói tại đây...&#10;&#10;Mẹo: Bạn có thể chèn cảm xúc như [cười] hoặc thời gian ngắt nghỉ như [nghỉ 1.5s] để giọng đọc tự nhiên và truyền cảm hơn!" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-y custom-scrollbar text-base leading-relaxed"></textarea>
+          </div>
+
+          <!-- Text stats & Document import -->
+          <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+            <div class="flex items-center space-x-4">
+              <span id="char-count">0 ký tự</span>
+              <span id="word-count">0 từ</span>
+              <span id="est-duration">~0:00 audio</span>
+            </div>
+            <div>
+              <label class="cursor-pointer text-brand-400 hover:text-brand-300 flex items-center space-x-1 font-medium">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                <span>Đọc từ file (.txt, .docx, .pdf)</span>
+                <input type="file" id="file-import" accept=".txt,.docx,.pdf" class="hidden" onchange="handleFileImport(event)">
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Right Column: Voice Picker & Controls (5 cols) -->
+      <div class="lg:col-span-5 flex flex-col space-y-4">
+        
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col space-y-5">
+          
+          <!-- Voice Selection Header & Region Filter -->
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <label class="text-sm font-bold text-white flex items-center space-x-2">
+                <i data-lucide="user-check" class="w-4 h-4 text-brand-400"></i>
+                <span>Chọn giọng đọc AI (25+ giọng)</span>
+              </label>
+            </div>
+
+            <!-- Filter pills -->
+            <div class="flex items-center space-x-1.5 mb-3">
+              <button onclick="filterVoices('all')" class="voice-filter-btn px-2.5 py-1 text-xs rounded-lg font-medium bg-brand-600 text-white" data-region="all">Tất cả</button>
+              <button onclick="filterVoices('Miền Bắc')" class="voice-filter-btn px-2.5 py-1 text-xs rounded-lg font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-region="Miền Bắc">Miền Bắc</button>
+              <button onclick="filterVoices('Miền Nam')" class="voice-filter-btn px-2.5 py-1 text-xs rounded-lg font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-region="Miền Nam">Miền Nam</button>
+              <button onclick="filterVoices('Miền Trung')" class="voice-filter-btn px-2.5 py-1 text-xs rounded-lg font-medium bg-slate-800 text-slate-300 hover:bg-slate-700" data-region="Miền Trung">Miền Trung</button>
+            </div>
+
+            <!-- Voice List Container -->
+            <div id="voices-list" class="space-y-2 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
+              <!-- Loaded dynamically via JavaScript -->
+            </div>
+          </div>
+
+          <!-- Speed & Options -->
+          <div class="border-t border-slate-800 pt-4 space-y-4">
+            
+            <!-- Speed Slider -->
+            <div>
+              <div class="flex justify-between items-center text-xs font-semibold text-slate-300 mb-1.5">
+                <span class="flex items-center space-x-1">
+                  <i data-lucide="gauge" class="w-3.5 h-3.5 text-brand-400"></i>
+                  <span>Tốc độ đọc:</span>
+                </span>
+                <span id="speed-val" class="text-brand-400 font-bold">1.00x</span>
+              </div>
+              <input type="range" id="speed-slider" min="0.75" max="1.50" step="0.05" value="1.00" class="w-full accent-brand-500 cursor-pointer" oninput="document.getElementById('speed-val').innerText = this.value + 'x'">
+            </div>
+
+            <!-- Checkboxes -->
+            <div class="flex items-center justify-between text-xs text-slate-300">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="include-srt" checked class="rounded accent-brand-500 w-4 h-4">
+                <span>Tạo kèm phụ đề (.srt) cho video</span>
+              </label>
+              <span class="text-slate-500">Chuẩn 48kHz WAV</span>
+            </div>
+
+          </div>
+
+          <!-- Generate Action Button -->
+          <div class="pt-2">
+            <button id="btn-generate" onclick="generateAudio()" class="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-bold text-base shadow-lg shadow-brand-500/25 flex items-center justify-center space-x-2 transition transform active:scale-98">
+              <i data-lucide="play" class="w-5 h-5 fill-current"></i>
+              <span>Tạo giọng nói ngay</span>
+            </button>
+          </div>
+
+          <!-- Result Player Box (Hidden initially) -->
+          <div id="result-box" class="hidden border border-brand-800/80 bg-brand-950/40 rounded-xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-brand-300 flex items-center space-x-1.5">
+                <i data-lucide="check-circle" class="w-4 h-4 text-brand-400"></i>
+                <span>Tạo giọng thành công!</span>
+              </span>
+              <span id="result-size" class="text-xs text-slate-400"></span>
+            </div>
+
+            <audio id="audio-player" controls class="w-full h-10 accent-brand-500"></audio>
+
+            <div class="flex items-center space-x-2 pt-1">
+              <a id="download-wav-btn" href="#" download class="flex-1 py-2 text-center text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white rounded-lg transition flex items-center justify-center space-x-1">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Tải WAV</span>
+              </a>
+              <a id="download-srt-btn" href="#" download class="flex-1 py-2 text-center text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition flex items-center justify-center space-x-1">
+                <i data-lucide="subtitles" class="w-3.5 h-3.5 text-brand-400"></i>
+                <span>Tải Phụ đề .SRT</span>
+              </a>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 2: VOICE CLONING -->
+    <div id="tab-clone" class="tab-content hidden max-w-3xl mx-auto bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+      <div class="border-b border-slate-800 pb-4">
+        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+          <i data-lucide="dna" class="w-5 h-5 text-brand-400"></i>
+          <span>Nhân bản giọng nói AI (Voice Cloning)</span>
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">Tạo giọng đọc mới hoàn toàn từ file ghi âm mẫu chỉ từ 5 đến 8 giây.</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-2">1. Đặt tên giọng nhân bản:</label>
+          <input type="text" id="clone-name" placeholder="Ví dụ: Giọng Thuyết Minh Của Tôi" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-2">2. Tải lên tệp âm thanh mẫu (WAV, MP3, 5-8 giây):</label>
+          <div class="border-2 border-dashed border-slate-700 hover:border-brand-500 rounded-xl p-6 text-center cursor-pointer transition bg-slate-950/50" onclick="document.getElementById('clone-file').click()">
+            <i data-lucide="upload-cloud" class="w-8 h-8 text-brand-400 mx-auto mb-2"></i>
+            <p class="text-sm font-medium text-slate-200" id="clone-file-label">Bấm để chọn file ghi âm mẫu từ máy tính</p>
+            <p class="text-xs text-slate-500 mt-1">Khuyến nghị giọng nói rõ ràng, không lẫn nhạc nền hoặc tạp âm</p>
+            <input type="file" id="clone-file" accept="audio/*" class="hidden" onchange="handleCloneFileSelect(event)">
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button onclick="submitVoiceClone()" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm transition shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-2">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Bắt đầu nhân bản giọng</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: BATCH PROCESSING -->
+    <div id="tab-batch" class="tab-content hidden max-w-4xl mx-auto bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+      <div class="border-b border-slate-800 pb-3">
+        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+          <i data-lucide="layers" class="w-5 h-5 text-brand-400"></i>
+          <span>Tạo giọng hàng loạt (Batch Audio Generation)</span>
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">Đánh dấu mốc <code class="text-brand-400 font-mono">[P1]</code>, <code class="text-brand-400 font-mono">[P2]</code>... ở đầu dòng để tách thành từng file audio riêng.</p>
+      </div>
+
+      <textarea id="batch-input" rows="10" placeholder="[P1] Chào mừng quý vị và các bạn đã đến với kênh Xteam.&#10;&#10;[P2] Nội dung tiếp theo trong video hôm nay là phần hướng dẫn cài đặt.&#10;&#10;[P3] Đừng quên nhấn like và đăng ký kênh nhé!" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 custom-scrollbar font-mono"></textarea>
+
+      <button onclick="processBatchTTS()" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-2">
+        <i data-lucide="folder-down" class="w-4 h-4"></i>
+        <span>Tạo tất cả các phần (Xuất file riêng)</span>
+      </button>
+
+      <div id="batch-results" class="space-y-2 pt-2"></div>
+    </div>
+
+    <!-- TAB 4: HISTORY -->
+    <div id="tab-history" class="tab-content hidden max-w-5xl mx-auto bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+            <i data-lucide="history" class="w-5 h-5 text-brand-400"></i>
+            <span>Lịch sử tạo giọng trên máy</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Các file đã tạo được lưu trữ trực tiếp trên máy tính của bạn</p>
+        </div>
+        <button onclick="loadHistory()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition flex items-center space-x-1.5">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span>Làm mới</span>
+        </button>
+      </div>
+
+      <div id="history-list" class="space-y-3 max-h-[500px] overflow-y-auto custom-scrollbar">
+        <!-- History items loaded via JS -->
+      </div>
+    </div>
+
+    <!-- TAB 5: SETTINGS & API -->
+    <div id="tab-settings" class="tab-content hidden max-w-4xl mx-auto space-y-6">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+          <i data-lucide="cpu" class="w-5 h-5 text-brand-400"></i>
+          <span>Cấu hình mô hình AI & Thiết bị</span>
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="border border-brand-600/50 bg-brand-950/20 p-4 rounded-xl">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-bold text-brand-300 text-sm">v3 Turbo INT8 (Khuyến nghị)</span>
+              <span class="text-xs bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded">Đang dùng</span>
+            </div>
+            <p class="text-xs text-slate-400">Tối ưu hóa chạy CPU cực nhanh, âm thanh chuẩn 48kHz, không tốn RAM.</p>
+          </div>
+
+          <div class="border border-slate-800 bg-slate-950/40 p-4 rounded-xl opacity-75">
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-bold text-slate-300 text-sm">v3 Turbo GPU NVIDIA</span>
+              <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">CUDA</span>
+            </div>
+            <p class="text-xs text-slate-400">Tăng tốc xử lý bằng Card đồ họa NVIDIA cho các bài đọc dài.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+          <i data-lucide="terminal" class="w-5 h-5 text-brand-400"></i>
+          <span>Tích hợp Local API (Dành cho Lập trình viên & Tool Automation)</span>
+        </h2>
+        <p class="text-xs text-slate-400">Gọi trực tiếp API từ Python, Node.js hoặc cURL tại máy chủ nội bộ:</p>
+        
+        <pre class="bg-slate-950 p-4 rounded-xl text-xs font-mono text-brand-300 overflow-x-auto border border-slate-800">
+curl -X POST "http://127.0.0.1:8001/api/tts/generate" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Chào mừng đến với Xteam Voice Studio!", "voice_id": "north_male_news_1", "speed": 1.0}'</pre>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- License Activation Modal -->
+  <div id="license-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-brand-950 border border-brand-800/80 flex items-center justify-center text-brand-400">
+            <i data-lucide="key-round" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">Kích hoạt Bản quyền Xteam</h3>
+            <p class="text-[11px] text-slate-400">Hệ thống quản lý bản quyền theo Mã máy</p>
+          </div>
+        </div>
+        <button onclick="closeLicenseModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Machine ID Box -->
+      <div class="space-y-2">
+        <label class="block text-xs font-semibold text-slate-300">1. Mã máy của bạn (Hardware ID):</label>
+        <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 rounded-xl p-2.5">
+          <span id="modal-hwid" class="flex-1 font-mono text-base font-bold text-brand-400 tracking-wider select-all px-2">Đang lấy mã máy...</span>
+          <button onclick="copyMachineId()" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 shadow-sm">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span id="copy-btn-text">Sao chép</span>
+          </button>
+        </div>
+        <p class="text-[11px] text-slate-400">👉 Hãy bấm <strong>Sao chép</strong> và gửi mã này cho <strong>Admin Xteam</strong> qua Zalo / Telegram để kích hoạt bản quyền.</p>
+      </div>
+
+      <!-- Current Status -->
+      <div class="border border-slate-800 bg-slate-950/60 rounded-xl p-3.5 space-y-2 text-xs">
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Trạng thái kích hoạt:</span>
+          <span id="modal-status-badge" class="font-bold px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Chưa kích hoạt</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Tên khách hàng:</span>
+          <span id="modal-customer-name" class="font-bold text-white">—</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Thời hạn sử dụng:</span>
+          <span id="modal-expires-at" class="font-bold text-brand-300">—</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-slate-400">Số ngày còn lại:</span>
+          <span id="modal-days-left" class="font-bold text-slate-200">—</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-2 pt-2">
+        <button onclick="checkLicenseStatus(true)" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs rounded-xl transition shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-1.5">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span>Kiểm tra kích hoạt lại</span>
+        </button>
+        <button onclick="closeLicenseModal()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pronunciation Dictionary Modal -->
+  <div id="dict-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-white text-base flex items-center space-x-2">
+          <i data-lucide="book-open" class="w-4 h-4 text-brand-400"></i>
+          <span>Từ điển phát âm riêng (Custom Dictionary)</span>
+        </h3>
+        <button onclick="closeDictModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <div class="flex space-x-2">
+          <input type="text" id="dict-word" placeholder="Từ gốc (VD: AI)" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white">
+          <input type="text" id="dict-read" placeholder="Cách đọc (VD: Trí tuệ nhân tạo)" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white">
+          <button onclick="addDictEntry()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-bold transition">Thêm</button>
+        </div>
+      </div>
+
+      <div id="dict-list" class="max-h-60 overflow-y-auto custom-scrollbar space-y-1.5 border border-slate-800 rounded-xl p-2 bg-slate-950/60">
+        <!-- Dictionary items -->
+      </div>
+
+      <div class="pt-2 text-right">
+        <button onclick="closeDictModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 bg-slate-950/90 py-4 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+      <p>© 2026 <strong>Xteam Voice Studio</strong> — Nền tảng chuyển văn bản tiếng Việt thành giọng nói AI bảo mật & offline.</p>
+    </div>
+  </footer>
+
+  <!-- Main JavaScript File -->
+  <script src="app.js"></script>
+</body>
+</html>
