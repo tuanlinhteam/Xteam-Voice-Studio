@@ -10,7 +10,7 @@ let globalLicenses = global._xteamLicenses || {
 };
 global._xteamLicenses = globalLicenses;
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "xteam2026";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
