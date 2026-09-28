@@ -107,13 +107,32 @@
 
             <div>
               <label class="block text-xs font-semibold text-slate-300 mb-1">Thời hạn sử dụng:</label>
-              <select id="cust-duration" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
-                <option value="30">1 Tháng (30 ngày)</option>
+              <select id="cust-duration" onchange="toggleCustomDuration(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                <option value="1">1 Ngày (Dùng thử)</option>
+                <option value="3">3 Ngày (Dùng thử)</option>
+                <option value="7">7 Ngày (1 Tuần)</option>
+                <option value="15">15 Ngày (Nửa tháng)</option>
+                <option value="30" selected>1 Tháng (30 ngày)</option>
+                <option value="60">2 Tháng (60 ngày)</option>
                 <option value="90">3 Tháng (90 ngày)</option>
                 <option value="180">6 Tháng (180 ngày)</option>
                 <option value="365">1 Năm (365 ngày)</option>
                 <option value="3650">Vĩnh viễn (10 Năm)</option>
+                <option value="custom_days">✏️ Tùy chỉnh số ngày...</option>
+                <option value="custom_date">📅 Chọn ngày hết hạn cụ thể...</option>
               </select>
+            </div>
+
+            <!-- Custom Days Box -->
+            <div id="custom-days-box" class="hidden space-y-1">
+              <label class="block text-xs font-semibold text-brand-300">Nhập số ngày:</label>
+              <input type="number" id="cust-custom-days" min="1" max="9999" placeholder="Ví dụ: 5, 10, 45, 120 ngày" class="w-full bg-slate-950 border border-brand-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+            </div>
+
+            <!-- Custom Date Box -->
+            <div id="custom-date-box" class="hidden space-y-1">
+              <label class="block text-xs font-semibold text-brand-300">Chọn ngày hết hạn:</label>
+              <input type="date" id="cust-custom-date" class="w-full bg-slate-950 border border-brand-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-brand-500">
             </div>
 
             <button onclick="submitNewLicense()" class="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs rounded-lg transition shadow-md shadow-brand-500/20 flex items-center justify-center space-x-1.5">
@@ -250,15 +269,24 @@
             </div>
           </div>
 
-          <div class="flex items-center space-x-2">
-            <button onclick="extendLicense('${lic.hwid}', '${lic.customer_name}', 30)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-brand-600 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition" title="Gia hạn thêm 30 ngày">
-              +30 Ngày
+          <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+            <button onclick="extendLicense('${lic.hwid}', '${lic.customer_name}', 1)" class="px-2 py-1 bg-slate-800 hover:bg-brand-600 text-slate-300 hover:text-white rounded text-[11px] font-semibold transition" title="Gia hạn 1 ngày">
+              +1N
             </button>
-            <button onclick="extendLicense('${lic.hwid}', '${lic.customer_name}', 365)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-brand-600 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition" title="Gia hạn 1 Năm">
+            <button onclick="extendLicense('${lic.hwid}', '${lic.customer_name}', 7)" class="px-2 py-1 bg-slate-800 hover:bg-brand-600 text-slate-300 hover:text-white rounded text-[11px] font-semibold transition" title="Gia hạn 7 ngày (1 tuần)">
+              +7N
+            </button>
+            <button onclick="extendLicense('${lic.hwid}', '${lic.customer_name}', 30)" class="px-2 py-1 bg-slate-800 hover:bg-brand-600 text-slate-300 hover:text-white rounded text-[11px] font-semibold transition" title="Gia hạn thêm 30 ngày">
+              +30N
+            </button>
+            <button onclick="extendLicense('${lic.hwid}', '${lic.customer_name}', 365)" class="px-2 py-1 bg-slate-800 hover:bg-brand-600 text-slate-300 hover:text-white rounded text-[11px] font-semibold transition" title="Gia hạn 1 Năm">
               +1 Năm
             </button>
-            <button onclick="deleteLicense('${lic.hwid}')" class="p-2 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-lg text-xs transition" title="Xóa khách hàng này">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <button onclick="promptCustomExtend('${lic.hwid}', '${lic.customer_name}')" class="px-2 py-1 bg-slate-800 hover:bg-brand-600 text-slate-300 hover:text-white rounded text-[11px] font-semibold transition" title="Tự nhập số ngày gia hạn">
+              + Tùy ý
+            </button>
+            <button onclick="deleteLicense('${lic.hwid}')" class="p-1.5 bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded text-xs transition ml-1" title="Xóa khách hàng này">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           </div>
         `;
@@ -267,24 +295,55 @@
       lucide.createIcons();
     }
 
+    function toggleCustomDuration(val) {
+      const daysBox = document.getElementById("custom-days-box");
+      const dateBox = document.getElementById("custom-date-box");
+      if (val === "custom_days") {
+        daysBox.classList.remove("hidden");
+        dateBox.classList.add("hidden");
+      } else if (val === "custom_date") {
+        dateBox.classList.remove("hidden");
+        daysBox.classList.add("hidden");
+      } else {
+        daysBox.classList.add("hidden");
+        dateBox.classList.add("hidden");
+      }
+    }
+
     async function submitNewLicense() {
       const name = document.getElementById("cust-name").value.trim();
       const hwid = document.getElementById("cust-hwid").value.trim();
-      const days = document.getElementById("cust-duration").value;
+      const durVal = document.getElementById("cust-duration").value;
 
       if (!name || !hwid) return alert("Vui lòng nhập đầy đủ tên khách và mã máy!");
+
+      let payload = { customer_name: name, hwid: hwid };
+
+      if (durVal === "custom_days") {
+        const days = document.getElementById("cust-custom-days").value;
+        if (!days || parseInt(days) <= 0) return alert("Vui lòng nhập số ngày hợp lệ!");
+        payload.days = parseInt(days);
+      } else if (durVal === "custom_date") {
+        const expDate = document.getElementById("cust-custom-date").value;
+        if (!expDate) return alert("Vui lòng chọn ngày hết hạn!");
+        payload.expires_at = expDate;
+      } else {
+        payload.days = parseInt(durVal);
+      }
 
       try {
         const res = await fetch("/api/admin/licenses", {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Admin-Key": adminToken },
-          body: JSON.stringify({ customer_name: name, hwid: hwid, days: days })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (data.success) {
           alert(data.message);
           document.getElementById("cust-name").value = "";
           document.getElementById("cust-hwid").value = "";
+          document.getElementById("cust-custom-days").value = "";
+          document.getElementById("cust-custom-date").value = "";
           fetchLicenses();
         } else {
           alert(data.message);
@@ -304,6 +363,14 @@
         });
         fetchLicenses();
       } catch (err) {}
+    }
+
+    async function promptCustomExtend(hwid, name) {
+      const input = prompt(`Nhập số ngày muốn gia hạn thêm cho "${name}":`, "15");
+      if (!input) return;
+      const days = parseInt(input);
+      if (isNaN(days) || days <= 0) return alert("Số ngày không hợp lệ!");
+      extendLicense(hwid, name, days);
     }
 
     async function deleteLicense(hwid) {
