@@ -1,15 +1,4 @@
-let globalLicenses = global._xteamLicenses || {
-  "XTM-889B-AD92-6AC8": {
-    customer_name: "Admin Xteam (Mẫu)",
-    hwid: "XTM-889B-AD92-6AC8",
-    created_at: "2026-09-28",
-    expires_at: "2027-09-28",
-    plan: "Vĩnh viễn / VIP",
-    active: true
-  }
-};
-global._xteamLicenses = globalLicenses;
-
+const FIREBASE_DB_URL = process.env.FIREBASE_DB_URL || "https://xteam-328bc-default-rtdb.firebaseio.com";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
 module.exports = async (req, res) => {
@@ -26,22 +15,37 @@ module.exports = async (req, res) => {
     return res.status(401).json({ success: false, message: "Mật khẩu Admin không chính xác!" });
   }
 
-  // GET: List all licenses
+  // GET: Lấy danh sách tất cả khách hàng từ Firebase
   if (req.method === "GET") {
-    const list = Object.values(global._xteamLicenses).map(item => {
-      const now = new Date();
-      const expireDate = new Date(item.expires_at);
-      const daysLeft = Math.ceil((expireDate - now) / (1000 * 60 * 60 * 24));
-      return {
-        ...item,
-        days_left: Math.max(0, daysLeft),
-        is_expired: daysLeft < 0
-      };
-    });
-    return res.status(200).json({ success: true, licenses: list });
+    try {
+      const fbRes = await fetch(`${FIREBASE_DB_URL}/licenses.json`);
+      const data = await fbRes.json();
+      
+      if (!data) {
+        return res.status(200).json({ success: true, licenses: [] });
+      }
+
+      const list = Object.values(data).map(item => {
+        const now = new Date();
+        const expireDate = new Date(item.expires_at);
+        const daysLeft = Math.ceil((expireDate - now) / (1000 * 60 * 60 * 24));
+        return {
+          ...item,
+          days_left: Math.max(0, daysLeft),
+          is_expired: daysLeft < 0
+        };
+      });
+
+      // Sắp xếp khách hàng mới lên đầu
+      list.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      return res.status(200).json({ success: true, licenses: list });
+    } catch (err) {
+      return res.status(500).json({ success: false, message: "Lỗi đọc dữ liệu từ Firebase: " + err.message });
+    }
   }
 
-  // POST: Add or Update License
+  // POST: Kích hoạt mới hoặc Gia hạn khách hàng trên Firebase
   if (req.method === "POST") {
     const { customer_name, hwid, days, expires_at, plan, active } = req.body;
     
@@ -57,7 +61,6 @@ module.exports = async (req, res) => {
       d.setDate(d.getDate() + parseInt(days));
       finalExpire = d.toISOString().split("T")[0];
     } else if (!finalExpire) {
-      // Default 30 days
       const d = new Date();
       d.setDate(d.getDate() + 30);
       finalExpire = d.toISOString().split("T")[0];
@@ -69,21 +72,43 @@ module.exports = async (req, res) => {
       created_at: new Date().toISOString().split("T")[0],
       expires_at: finalExpire,
       plan: plan || "Bản quyền VIP",
-      active: active !== undefined ? active : true
+      active: active !== undefined ? active : true,
+      updated_at: new Date().toISOString()
     };
 
-    global._xteamLicenses[cleanHwid] = newLic;
-    return res.status(200).json({ success: true, message: `Đã kích hoạt thành công cho khách hàng ${customer_name}!`, license: newLic });
+    try {
+      // Lưu realtime vào Firebase
+      await fetch(`${FIREBASE_DB_URL}/licenses/${encodeURIComponent(cleanHwid)}.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newLic)
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: `Đã kích hoạt realtime cho khách hàng ${customer_name}!`,
+        license: newLic
+      });
+    } catch (err) {
+      return res.status(500).json({ success: false, message: "Lỗi lưu vào Firebase: " + err.message });
+    }
   }
 
-  // DELETE: Delete a License
+  // DELETE: Xóa hoặc khóa khách hàng trên Firebase
   if (req.method === "DELETE") {
     const hwid = (req.query.hwid || (req.body && req.body.hwid) || "").trim().toUpperCase();
-    if (global._xteamLicenses[hwid]) {
-      delete global._xteamLicenses[hwid];
-      return res.status(200).json({ success: true, message: `Đã xóa bản quyền mã máy ${hwid}` });
+    if (!hwid) {
+      return res.status(400).json({ success: false, message: "Thiếu mã máy cần xóa." });
     }
-    return res.status(404).json({ success: false, message: "Không tìm thấy mã máy này." });
+
+    try {
+      await fetch(`${FIREBASE_DB_URL}/licenses/${encodeURIComponent(hwid)}.json`, {
+        method: "DELETE"
+      });
+      return res.status(200).json({ success: true, message: `Đã xóa bản quyền mã máy ${hwid} khỏi Firebase` });
+    } catch (err) {
+      return res.status(500).json({ success: false, message: "Lỗi xóa trên Firebase: " + err.message });
+    }
   }
 
   return res.status(405).json({ message: "Method Not Allowed" });
