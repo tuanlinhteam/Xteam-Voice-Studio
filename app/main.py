@@ -3,6 +3,7 @@ import sys
 import json
 import time
 import uuid
+import shutil
 import asyncio
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -133,6 +134,16 @@ async def generate_tts(req: TTSRequest):
     if srt_content:
         with open(HISTORY_DIR / srt_filename, "w", encoding="utf-8") as f:
             f.write(srt_content)
+            
+    # Tự động lưu bản sao vào thư mục Downloads của người dùng
+    try:
+        downloads_dir = Path.home() / "Downloads"
+        downloads_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(filepath, downloads_dir / filename)
+        if srt_content:
+            shutil.copy2(HISTORY_DIR / srt_filename, downloads_dir / srt_filename)
+    except Exception:
+        pass
     
     meta = {
         "id": item_id,
@@ -154,6 +165,7 @@ async def generate_tts(req: TTSRequest):
     return {
         "success": True,
         "id": item_id,
+        "filename": filename,
         "audio_url": f"/api/audio/{filename}",
         "srt_url": f"/api/audio/{srt_filename}" if srt_content else None,
         "srt_content": srt_content,
@@ -162,7 +174,7 @@ async def generate_tts(req: TTSRequest):
     }
 
 @app.get("/api/audio/{filename}")
-def serve_audio(filename: str):
+def serve_audio(filename: str, download: bool = False):
     file_path = HISTORY_DIR / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File không tồn tại")
@@ -171,7 +183,49 @@ def serve_audio(filename: str):
     if filename.endswith(".srt"):
         media_type = "text/plain; charset=utf-8"
         
-    return FileResponse(file_path, media_type=media_type, filename=filename)
+    headers = {}
+    if download:
+        headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    else:
+        headers["Content-Disposition"] = f'inline; filename="{filename}"'
+        
+    return FileResponse(file_path, media_type=media_type, filename=filename, headers=headers)
+
+@app.post("/api/audio/save-to-downloads/{filename}")
+def save_to_downloads(filename: str):
+    file_path = HISTORY_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File không tồn tại")
+    
+    try:
+        downloads_dir = Path.home() / "Downloads"
+        downloads_dir.mkdir(parents=True, exist_ok=True)
+        dest_path = downloads_dir / filename
+        shutil.copy2(file_path, dest_path)
+        
+        srt_name = filename.rsplit(".", 1)[0] + ".srt"
+        srt_path = HISTORY_DIR / srt_name
+        if srt_path.exists():
+            shutil.copy2(srt_path, downloads_dir / srt_name)
+            
+        return {
+            "success": True,
+            "saved_path": str(dest_path),
+            "folder": str(downloads_dir),
+            "message": f"Đã lưu thành công vào thư mục Downloads!"
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.get("/api/open-downloads-folder")
+def open_downloads_folder():
+    try:
+        downloads_dir = Path.home() / "Downloads"
+        if sys.platform == "win32":
+            os.startfile(str(downloads_dir))
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 @app.get("/api/history")
 def get_history():

@@ -235,6 +235,60 @@ function handleFileImport(e) {
   reader.readAsText(file);
 }
 
+// Download Handlers (Hỗ trợ 100% Native WebView & Trình duyệt)
+let currentGeneratedAudio = null;
+let currentGeneratedSrt = null;
+
+async function triggerFileDownload(url, filename) {
+  try {
+    const res = await fetch(url + (url.includes("?") ? "&" : "?") + "download=true");
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = blobUrl;
+    a.download = filename || url.split("/").pop().split("?")[0];
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      window.URL.revokeObjectURL(blobUrl);
+      a.remove();
+    }, 1000);
+  } catch (e) {
+    window.location.href = url + (url.includes("?") ? "&" : "?") + "download=true";
+  }
+}
+
+async function downloadCurrentMp3() {
+  if (!currentGeneratedAudio) return;
+  triggerFileDownload(`/api/audio/${currentGeneratedAudio}`, currentGeneratedAudio);
+  
+  try {
+    await fetch(`/api/audio/save-to-downloads/${currentGeneratedAudio}`, { method: "POST" });
+    showActivationToast(`✅ Đã lưu file ${currentGeneratedAudio} vào thư mục Downloads của bạn!`);
+  } catch (e) {}
+}
+
+async function downloadCurrentSrt() {
+  if (!currentGeneratedSrt) return;
+  triggerFileDownload(`/api/audio/${currentGeneratedSrt}`, currentGeneratedSrt);
+  showActivationToast(`✅ Đã tải file phụ đề ${currentGeneratedSrt}!`);
+}
+
+async function downloadAudioItem(filename) {
+  triggerFileDownload(`/api/audio/${filename}`, filename);
+  try {
+    await fetch(`/api/audio/save-to-downloads/${filename}`, { method: "POST" });
+    showActivationToast(`✅ Đã lưu ${filename} vào thư mục Downloads!`);
+  } catch (e) {}
+}
+
+async function openDownloadsFolder() {
+  try {
+    await fetch("/api/open-downloads-folder");
+  } catch (e) {}
+}
+
 // Main Audio Generation
 async function generateAudio() {
   const text = document.getElementById("tts-input").value.trim();
@@ -269,19 +323,18 @@ async function generateAudio() {
 
     const data = await res.json();
     if (data.success) {
+      currentGeneratedAudio = data.filename;
+      currentGeneratedSrt = data.metadata ? data.metadata.srt_filename : null;
+
       const resultBox = document.getElementById("result-box");
       const player = document.getElementById("audio-player");
-      const downloadWav = document.getElementById("download-wav-btn");
       const downloadSrt = document.getElementById("download-srt-btn");
       const resultSize = document.getElementById("result-size");
 
       player.src = data.audio_url;
       player.play();
 
-      downloadWav.href = data.audio_url;
-      downloadWav.innerText = "Tải File MP3";
       if (data.srt_url) {
-        downloadSrt.href = data.srt_url;
         downloadSrt.classList.remove("hidden");
       } else {
         downloadSrt.classList.add("hidden");
@@ -332,9 +385,9 @@ async function loadHistory() {
             <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
             <span>Nghe</span>
           </button>
-          <a href="/api/audio/${item.filename}" download class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition" title="Tải Audio">
+          <button onclick="downloadAudioItem('${item.filename}')" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg transition" title="Tải Audio / Lưu Downloads">
             <i data-lucide="download" class="w-4 h-4"></i>
-          </a>
+          </button>
           <button onclick="deleteHistory('${item.id}')" class="p-2 bg-slate-800 hover:bg-red-600/80 text-slate-400 hover:text-white rounded-lg transition" title="Xóa">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>

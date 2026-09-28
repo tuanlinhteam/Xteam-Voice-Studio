@@ -242,14 +242,17 @@
             <audio id="audio-player" controls class="w-full h-10 accent-brand-500"></audio>
 
             <div class="flex items-center space-x-2 pt-1">
-              <a id="download-wav-btn" href="#" download class="flex-1 py-2 text-center text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white rounded-lg transition flex items-center justify-center space-x-1">
+              <button id="download-mp3-btn" onclick="downloadCurrentMp3()" class="flex-1 py-2 text-center text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white rounded-lg transition flex items-center justify-center space-x-1 shadow-md shadow-brand-500/20">
                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                <span>Tải WAV</span>
-              </a>
-              <a id="download-srt-btn" href="#" download class="flex-1 py-2 text-center text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition flex items-center justify-center space-x-1">
+                <span id="download-mp3-text">Tải File MP3</span>
+              </button>
+              <button id="download-srt-btn" onclick="downloadCurrentSrt()" class="flex-1 py-2 text-center text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition flex items-center justify-center space-x-1">
                 <i data-lucide="subtitles" class="w-3.5 h-3.5 text-brand-400"></i>
                 <span>Tải Phụ đề .SRT</span>
-              </a>
+              </button>
+              <button onclick="openDownloadsFolder()" class="p-2 bg-slate-800 hover:bg-brand-600/80 text-slate-300 hover:text-white rounded-lg text-xs transition" title="Mở thư mục Downloads">
+                <i data-lucide="folder-open" class="w-4 h-4"></i>
+              </button>
             </div>
           </div>
 
