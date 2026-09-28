@@ -1,6 +1,5 @@
 import os
 import sys
-import subprocess
 import hashlib
 import platform
 import json
@@ -11,6 +10,8 @@ from typing import Dict, Any, Optional
 
 # Cấu hình địa chỉ Vercel API
 SETTINGS_FILE = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "XteamVoiceStudio" / "license_settings.json"
+
+_CACHED_HWID: Optional[str] = None
 
 def get_server_url() -> str:
     if SETTINGS_FILE.exists():
@@ -29,42 +30,49 @@ def save_server_url(url: str):
 
 def get_machine_id() -> str:
     """
-    Tạo Mã máy (HWID) duy nhất và ổn định trên mọi phiên bản Windows (10/11)
+    Tạo Mã máy (HWID) duy nhất và ổn định 100% Native (Không gọi PowerShell/CMD để tránh hiện cửa sổ)
     Format: XTM-XXXX-XXXX-XXXX
     """
+    global _CACHED_HWID
+    if _CACHED_HWID:
+        return _CACHED_HWID
+
     raw_parts = []
     
     if platform.system() == "Windows":
-        # 1. PowerShell CIM UUID
-        try:
-            cmd = ['powershell', '-NoProfile', '-Command', '(Get-CimInstance Win32_ComputerSystemProduct).UUID']
-            p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=3)
-            uuid_out = p.stdout.strip()
-            if uuid_out and len(uuid_out) > 10:
-                raw_parts.append(uuid_out)
-        except Exception:
-            pass
-
-        # 2. Machine GUID từ Windows Registry
+        # 1. Machine GUID từ Windows Registry (Bảo mật, độc nhất theo từng bản cài đặt Windows)
         try:
             import winreg
             key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography")
             guid, _ = winreg.QueryValueEx(key, "MachineGuid")
             winreg.CloseKey(key)
             if guid:
-                raw_parts.append(guid)
+                raw_parts.append(str(guid).strip())
         except Exception:
             pass
 
-    # 3. MAC address & Machine specs
+        # 2. Windows Product ID từ Registry
+        try:
+            import winreg
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion")
+            pid, _ = winreg.QueryValueEx(key, "ProductId")
+            winreg.CloseKey(key)
+            if pid:
+                raw_parts.append(str(pid).strip())
+        except Exception:
+            pass
+
+    # 3. Thông số phần cứng: MAC, Processor Identifier, Machine Name
     raw_parts.append(str(uuid.getnode()))
     raw_parts.append(platform.node())
-    raw_parts.append(platform.processor())
+    raw_parts.append(os.environ.get("PROCESSOR_IDENTIFIER", ""))
+    raw_parts.append(os.environ.get("COMPUTERNAME", ""))
 
-    combined = "@@".join(raw_parts)
+    combined = "@@".join(filter(None, raw_parts))
     hash_hex = hashlib.sha256(combined.encode("utf-8")).hexdigest().upper()
     
-    return f"XTM-{hash_hex[0:4]}-{hash_hex[4:8]}-{hash_hex[8:12]}"
+    _CACHED_HWID = f"XTM-{hash_hex[0:4]}-{hash_hex[4:8]}-{hash_hex[8:12]}"
+    return _CACHED_HWID
 
 def check_remote_license(custom_server: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -75,7 +83,7 @@ def check_remote_license(custom_server: Optional[str] = None) -> Dict[str, Any]:
     api_url = f"{server}/api/check-license"
     
     try:
-        res = requests.post(api_url, json={"hwid": hwid}, timeout=6)
+        res = requests.post(api_url, json={"hwid": hwid}, timeout=5)
         if res.status_code == 200:
             data = res.json()
             return {
