@@ -2,6 +2,7 @@ import sys
 import os
 import multiprocessing
 import socket
+import ctypes
 from pathlib import Path
 import threading
 import time
@@ -10,6 +11,14 @@ import webbrowser
 
 # Khởi tạo freeze_support cho PyInstaller trên Windows
 multiprocessing.freeze_support()
+
+# Đặt App ID riêng để Windows Taskbar hiển thị đúng tên "Xteam Voice Studio" và icon riêng
+try:
+    if sys.platform == 'win32':
+        myappid = 'Xteam.VoiceStudio.App.1.0'
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except Exception:
+    pass
 
 # Xử lý an toàn luồng output console khi chạy ở chế độ no-window
 if hasattr(sys, 'stdout') and sys.stdout and hasattr(sys.stdout, 'reconfigure'):
@@ -49,7 +58,7 @@ APP_URL = f"http://{HOST}:{PORT}"
 server_instance = None
 
 def start_backend():
-    """Khởi chạy FastAPI Local TTS Backend với log_config=None (an toàn 100% trong PyInstaller windowed)"""
+    """Khởi chạy FastAPI Local TTS Backend với log_config=None"""
     global server_instance
     try:
         config = uvicorn.Config(
@@ -60,7 +69,6 @@ def start_backend():
             loop="asyncio"
         )
         server_instance = uvicorn.Server(config)
-        # Vô hiệu hóa signal handlers để uvicorn chạy ổn định trong background thread
         server_instance.install_signal_handlers = lambda: None
         server_instance.run()
     except Exception as e:
@@ -83,25 +91,44 @@ def wait_for_server(max_attempts=60):
     return False
 
 def open_app_window():
-    """Mở giao diện ứng dụng dưới dạng cửa sổ Desktop độc lập"""
-    # Đợi server sẵn sàng 100%
+    """Mở giao diện ứng dụng chuẩn Desktop Native (Độc lập 100%, hiển thị tên Xteam Voice Studio trên Taskbar)"""
     is_ready = wait_for_server()
     if not is_ready:
         time.sleep(1)
 
-    # 1. Mở dưới dạng App Window qua Microsoft Edge hoặc Google Chrome (Mượt mà nhất trên Windows)
+    # 1. ƯU TIÊN HÀNG ĐẦU: Mở cửa sổ Native PyWebView (Hiển thị tên Xteam Voice Studio riêng trên Taskbar)
+    try:
+        import webview
+        window = webview.create_window(
+            title="Xteam Voice Studio",
+            url=APP_URL,
+            width=1360,
+            height=880,
+            min_size=(960, 640),
+            background_color="#022c22",
+            text_select=True,
+            zoomable=True
+        )
+        webview.start(private_mode=False)
+        return
+    except Exception as e:
+        try:
+            with open("xteam_debug.log", "a", encoding="utf-8") as f:
+                f.write(f"WebView fallback: {str(e)}\n")
+        except Exception:
+            pass
+
+    # 2. Fallback nếu máy thiếu WebView2 runtime: Mở dạng App Window
     edge_paths = [
         r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
         r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
         os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Edge\Application\msedge.exe"),
-        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"),
-        os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe")
+        os.path.expandvars(r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe")
     ]
     chrome_paths = [
         r"C:\Program Files\Google\Chrome\Application\chrome.exe",
         r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-        os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"),
-        os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe")
+        os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe")
     ]
     
     for browser in edge_paths + chrome_paths:
@@ -113,24 +140,7 @@ def open_app_window():
             except Exception:
                 pass
 
-    # 2. Mở qua Native PyWebView nếu có
-    try:
-        import webview
-        window = webview.create_window(
-            title="Xteam Voice Studio — Chuyển văn bản thành giọng nói AI",
-            url=APP_URL,
-            width=1360,
-            height=880,
-            min_size=(960, 640),
-            background_color="#022c22",
-            text_select=True
-        )
-        webview.start(private_mode=False)
-        return
-    except Exception:
-        pass
-
-    # 3. Fallback: Mở trình duyệt mặc định của máy
+    # 3. Fallback cuối: Mở trình duyệt mặc định
     webbrowser.open(APP_URL)
     while True:
         time.sleep(3)
