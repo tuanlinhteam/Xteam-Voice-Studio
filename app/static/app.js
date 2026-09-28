@@ -427,14 +427,17 @@ async function removeDictEntry(word) {
   renderDictionary();
 }
 
-// License Verification & Management
-async function checkLicenseStatus(showAlert = false) {
+// License Verification & Real-time Auto-Sync
+let licensePollInterval = null;
+
+async function checkLicenseStatus(showAlert = false, isAuto = false) {
   const dot = document.getElementById("lic-dot");
   const text = document.getElementById("lic-text");
 
   try {
     const res = await fetch("/api/license/status");
     const data = await res.json();
+    const wasInactive = currentLicense ? !currentLicense.is_active : true;
     currentLicense = data;
 
     // Update Modal
@@ -455,9 +458,15 @@ async function checkLicenseStatus(showAlert = false) {
         text.innerText = `${data.customer_name} (${data.days_left} ngày)`;
       }
 
-      if (showAlert) {
+      // Realtime auto-unlock trigger
+      if (wasInactive && isAuto) {
+        closeLicenseModal();
+        showActivationToast(`🎉 Chúc mừng ${data.customer_name}! Bản quyền của bạn đã được kích hoạt thành công (Hạn: ${data.expires_at})`);
+      } else if (showAlert) {
         alert(`Bản quyền của bạn hợp lệ!\nTên: ${data.customer_name}\nThời hạn: ${data.expires_at} (Còn ${data.days_left} ngày)`);
       }
+
+      resetPolling(120000); // 2 phút kiểm tra 1 lần khi đã kích hoạt
     } else {
       badge.className = "font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30";
       badge.innerText = "Chưa kích hoạt / Hết hạn";
@@ -471,14 +480,36 @@ async function checkLicenseStatus(showAlert = false) {
 
       if (showAlert) {
         alert(`Mã máy ${data.hwid} chưa được kích hoạt hoặc đã hết hạn!\nVui lòng sao chép mã máy và gửi Admin Xteam.`);
-      } else {
-        // Auto open license modal on first startup if inactive
+      } else if (!isAuto) {
         openLicenseModal();
       }
+
+      resetPolling(3000); // Đang chờ kích hoạt: tự động kiểm tra mỗi 3 giây
     }
   } catch (err) {
     console.error("Lỗi kiểm tra bản quyền:", err);
   }
+}
+
+function resetPolling(intervalMs) {
+  if (licensePollInterval) clearInterval(licensePollInterval);
+  licensePollInterval = setInterval(() => {
+    checkLicenseStatus(false, true);
+  }, intervalMs);
+}
+
+function showActivationToast(msg) {
+  const toast = document.createElement("div");
+  toast.className = "fixed bottom-6 right-6 bg-brand-900 border-2 border-brand-400 text-white px-5 py-4 rounded-2xl shadow-2xl z-50 flex items-center space-x-3 transition transform duration-300 animate-bounce";
+  toast.innerHTML = `
+    <div class="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center font-bold text-white text-base">✓</div>
+    <div>
+      <h4 class="font-bold text-sm text-white">KÍCH HOẠT THÀNH CÔNG!</h4>
+      <p class="text-xs text-brand-200 mt-0.5">${msg}</p>
+    </div>
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.remove(); }, 6000);
 }
 
 function openLicenseModal() {
@@ -500,4 +531,5 @@ function copyMachineId() {
     alert("Mã máy của bạn là: " + hwid);
   });
 }
+
 

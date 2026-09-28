@@ -173,11 +173,33 @@
       location.reload();
     }
 
+    let fbEventSource = null;
+
     async function showDashboard() {
       document.getElementById("login-section").classList.add("hidden");
       document.getElementById("dashboard-section").classList.remove("hidden");
       document.getElementById("btn-logout").classList.remove("hidden");
       await fetchLicenses();
+
+      // Kết nối Realtime SSE với Firebase Realtime Database
+      connectFirebaseRealtime();
+    }
+
+    function connectFirebaseRealtime() {
+      try {
+        if (fbEventSource) fbEventSource.close();
+        fbEventSource = new EventSource("https://xteam-328bc-default-rtdb.firebaseio.com/licenses.json");
+        fbEventSource.addEventListener("put", (e) => {
+          fetchLicenses(); // Tự động đồng bộ ngay lập tức khi Firebase có thay đổi
+        });
+        fbEventSource.addEventListener("patch", (e) => {
+          fetchLicenses();
+        });
+      } catch (err) {
+        console.warn("SSE fallback to polling:", err);
+      }
+      // Định kỳ 5s đồng bộ 1 lần
+      setInterval(fetchLicenses, 5000);
     }
 
     async function fetchLicenses() {
