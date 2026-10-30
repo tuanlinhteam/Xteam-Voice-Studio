@@ -22,3 +22,5 @@ Desktop.ini
 $RECYCLE.BIN/
 
 *.exe
+*.log
+xteam_debug.log

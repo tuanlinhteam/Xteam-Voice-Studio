@@ -20,6 +20,12 @@ try:
 except Exception:
     pass
 
+# Chế độ không cửa sổ: stdout/stderr = None sẽ làm thanh tiến trình tải mô hình bị lỗi
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, 'w', encoding='utf-8')
+
 # Xử lý an toàn luồng output console khi chạy ở chế độ no-window
 if hasattr(sys, 'stdout') and sys.stdout and hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -100,7 +106,7 @@ def open_app_window():
     try:
         import webview
         window = webview.create_window(
-            title="Xteam Voice Studio",
+            title="Xteam Voice Studio v1.0.4 (Bản chuẩn)",
             url=APP_URL,
             width=1360,
             height=880,

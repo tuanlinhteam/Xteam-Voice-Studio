@@ -40,6 +40,66 @@ if not DICT_FILE.exists():
     with open(DICT_FILE, "w", encoding="utf-8") as f:
         json.dump(default_dict, f, ensure_ascii=False, indent=2)
 
+def load_app_settings() -> dict:
+    import uuid
+    defaults = {
+        "active_model": "v3turbo_int8",
+        "lan_enabled": False,
+        "lan_api_key": "xteam_sec_" + uuid.uuid4().hex[:16],
+    }
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                defaults.update(saved)
+        except Exception:
+            pass
+    else:
+        try:
+            save_app_settings(defaults)
+        except Exception:
+            pass
+    return defaults
+
+def save_app_settings(data: dict):
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def get_local_lan_ip() -> str:
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+def check_gpu_status() -> dict:
+    import subprocess
+    try:
+        res = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"], capture_output=True, text=True, timeout=3)
+        if res.returncode == 0 and res.stdout.strip():
+            gpu_info = res.stdout.strip().split("\n")[0]
+            return {"available": True, "gpu_name": gpu_info}
+    except Exception:
+        pass
+    return {"available": False, "gpu_name": None}
+
+SUPERTONIC_VOICES = [
+    {"id": "st:M2", "name": "Watson (M2)", "gender": "Nam", "region": "Quốc tế (31 thứ tiếng)", "style": "Trầm / Phim tài liệu (Mặc định)", "engine": "supertonic", "base": "en-US-GuyNeural", "sample": "History has witnessed extraordinary moments."},
+    {"id": "st:F1", "name": "Luna (F1)", "gender": "Nữ", "region": "Quốc tế (31 thứ tiếng)", "style": "Điềm tĩnh / Chăm sóc", "engine": "supertonic", "base": "en-US-JennyNeural", "sample": "This morning, I took a walk in the park."},
+    {"id": "st:F2", "name": "Moka (F2)", "gender": "Nữ", "region": "Quốc tế (31 thứ tiếng)", "style": "Tươi sáng / Trẻ trung", "engine": "supertonic", "base": "en-US-JennyNeural", "sample": "Hello everyone! Welcome to my channel."},
+    {"id": "st:F3", "name": "Nora (F3)", "gender": "Nữ", "region": "Quốc tế (31 thứ tiếng)", "style": "Phát thanh viên / Tin tức", "engine": "supertonic", "base": "en-US-JennyNeural", "sample": "Here is the latest international news update."},
+    {"id": "st:F4", "name": "Chloe (F4)", "gender": "Nữ", "region": "Quốc tế (31 thứ tiếng)", "style": "Dứt khoát / Đào tạo", "engine": "supertonic", "base": "en-US-JennyNeural", "sample": "Welcome to our professional training program."},
+    {"id": "st:F5", "name": "Stella (F5)", "gender": "Nữ", "region": "Quốc tế (31 thứ tiếng)", "style": "Dịu dàng / Sách nói", "engine": "supertonic", "base": "en-US-JennyNeural", "sample": "Once upon a time in a peaceful land."},
+    {"id": "st:M1", "name": "Keld (M1)", "gender": "Nam", "region": "Quốc tế (31 thứ tiếng)", "style": "Năng động / Quảng cáo", "engine": "supertonic", "base": "en-US-GuyNeural", "sample": "Don't miss out on this amazing opportunity today!"},
+    {"id": "st:M3", "name": "Alphonse (M3)", "gender": "Nam", "region": "Quốc tế (31 thứ tiếng)", "style": "Chỉn chu / Thuyết trình", "engine": "supertonic", "base": "en-US-GuyNeural", "sample": "Good morning ladies and gentlemen."},
+    {"id": "st:M4", "name": "Oliver (M4)", "gender": "Nam", "region": "Quốc tế (31 thứ tiếng)", "style": "Thân thiện / Thiếu nhi", "engine": "supertonic", "base": "en-US-GuyNeural", "sample": "Let's explore science and nature together."},
+    {"id": "st:M5", "name": "Ethan (M5)", "gender": "Nam", "region": "Quốc tế (31 thứ tiếng)", "style": "Ấm áp / Kể chuyện", "engine": "supertonic", "base": "en-US-GuyNeural", "sample": "Sit back and relax with today's story."}
+]
+
 # Built-in Voice List (25 voices, 3 regions, Male & Female with tailored acoustic pitch/rate profiles)
 VOICES = [
     # Miền Bắc
@@ -110,7 +170,8 @@ def preprocess_text_for_speech(raw_text: str) -> str:
     return text.strip()
 
 async def synthesize_speech_edge(text: str, voice_id: str, speed: float = 1.0, output_path: Optional[Path] = None) -> bytes:
-    voice_info = next((v for v in VOICES if v["id"] == voice_id), VOICES[0])
+    all_known_voices = VOICES + SUPERTONIC_VOICES
+    voice_info = next((v for v in all_known_voices if v["id"] == voice_id), VOICES[0])
     base_voice = voice_info.get("base", "vi-VN-HoaiMyNeural")
     pitch_offset = voice_info.get("pitch", "+0Hz")
     
@@ -170,3 +231,226 @@ def generate_srt_subtitles(text: str, speed: float = 1.0) -> str:
         idx += 1
         
     return "\n".join(srt_lines)
+
+
+# ===================== SRT TIMED SPEECH =====================
+import array
+import wave
+
+def _srt_time_to_sec(t: str) -> float:
+    t = t.strip().replace(".", ",")
+    hms, ms = t.split(",")
+    h, m, s = hms.split(":")
+    return int(h) * 3600 + int(m) * 60 + int(s) + int(ms.ljust(3, "0")[:3]) / 1000.0
+
+def parse_srt(srt_text: str):
+    """Tách file SRT thành danh sách (index, start, end, text)."""
+    srt_text = srt_text.replace("\ufeff", "").replace("\r\n", "\n").replace("\r", "\n")
+    cues = []
+    for block in re.split(r"\n\s*\n", srt_text.strip()):
+        lines = [l for l in block.split("\n") if l.strip()]
+        if not lines:
+            continue
+        ti = next((i for i, l in enumerate(lines) if "-->" in l), None)
+        if ti is None:
+            continue
+        try:
+            a, b = lines[ti].split("-->")
+            start, end = _srt_time_to_sec(a), _srt_time_to_sec(b.split()[0])
+        except Exception:
+            continue
+        text = " ".join(l.strip() for l in lines[ti + 1:])
+        text = re.sub(r"<[^>]+>", "", text).strip()
+        if text and end > start:
+            cues.append((len(cues) + 1, start, end, text))
+    return cues
+
+def _decode_mp3(mp3_bytes: bytes, rate: int = 24000):
+    import miniaudio
+    d = miniaudio.decode(mp3_bytes, output_format=miniaudio.SampleFormat.SIGNED16,
+                         nchannels=1, sample_rate=rate)
+    return d.samples  # array('h')
+
+async def synthesize_srt_audio(srt_text: str, voice_id: str, speed: float, output_path: Path, fit: bool = True):
+    """Đọc từng câu SRT, ép vừa khung thời gian, ghép thành 1 file WAV khớp mốc thời gian."""
+    from . import vieneu_engine as vn
+    use_vn = vn.is_vieneu_voice(voice_id)
+    RATE = 48000 if use_vn else 24000
+    cues = parse_srt(srt_text)
+    if not cues:
+        raise ValueError("File SRT không hợp lệ hoặc không có câu nào.")
+
+    sem = asyncio.Semaphore(1 if use_vn else 4)
+
+    async def render(text, spd):
+        async with sem:
+            if use_vn:
+                pcm, sr = await asyncio.to_thread(vn.synth_pcm, text, voice_id, spd)
+                if sr != RATE:
+                    import numpy as np
+                    idx = np.linspace(0, len(pcm) - 1, int(len(pcm) * RATE / sr))
+                    pcm = np.interp(idx, np.arange(len(pcm)), pcm).astype(np.int16)
+                return array.array("h", pcm.tobytes())
+            data = await synthesize_speech_edge(text, voice_id, spd)
+        return _decode_mp3(data, RATE)
+
+    async def work(cue):
+        _, start, end, text = cue
+        target = end - start
+        samples = await render(text, speed)
+        dur = len(samples) / RATE
+        if fit and dur > target * 1.02:
+            new_speed = min(2.0 if not use_vn else 1.6, speed * dur / target)
+            if new_speed > speed + 0.02:
+                samples = await render(text, new_speed)
+        return samples
+
+    results = await asyncio.gather(*(work(c) for c in cues))
+
+    out = array.array("h")
+    cursor = 0  # vị trí hiện tại tính bằng mẫu
+    drift = []
+    for cue, samples in zip(cues, results):
+        idx, start, end, _ = cue
+        start_s = int(start * RATE)
+        if start_s < cursor:
+            if (cursor - start_s) / RATE > 0.25:
+                drift.append(idx)
+            start_s = cursor
+        if start_s > cursor:
+            out.extend(array.array("h", bytes((start_s - cursor) * 2)))
+        out.extend(samples)
+        cursor = start_s + len(samples)
+
+    with wave.open(str(output_path), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(RATE)
+        w.writeframes(out.tobytes())
+
+    return {"cues": len(cues), "duration": round(cursor / RATE, 1), "late_cues": drift}
+
+
+# ===================== CONVERSATION / MULTI-SPEAKER =====================
+async def synthesize_conversation_audio(dialogues: List[Dict[str, Any]], pause_between: float, output_path: Path) -> Dict[str, Any]:
+    """Tổng hợp kịch bản hội thoại nhiều nhân vật, mỗi nhân vật 1 giọng đọc và tốc độ riêng."""
+    from . import vieneu_engine as vn
+    RATE = 48000
+    out = array.array("h")
+    total_duration = 0.0
+    turn_details = []
+
+    for idx, turn in enumerate(dialogues):
+        text = (turn.get("text") or "").strip()
+        if not text:
+            continue
+        voice_id = turn.get("voice_id", "north_male_news_1")
+        speed = float(turn.get("speed", 1.0))
+        speaker = turn.get("speaker") or f"Nhân vật {idx + 1}"
+
+        use_vn = vn.is_vieneu_voice(voice_id)
+        if use_vn:
+            pcm, sr = await asyncio.to_thread(vn.synth_pcm, text, voice_id, speed)
+            if sr != RATE:
+                import numpy as np
+                target_len = int(len(pcm) * RATE / sr)
+                idx_arr = np.linspace(0, len(pcm) - 1, target_len)
+                pcm = np.interp(idx_arr, np.arange(len(pcm)), pcm).astype(np.int16)
+            samples = array.array("h", pcm.tobytes())
+        else:
+            mp3_data = await synthesize_speech_edge(text, voice_id, speed)
+            samples = _decode_mp3(mp3_data, RATE)
+
+        dur = len(samples) / RATE
+        turn_details.append({
+            "speaker": speaker,
+            "text": text,
+            "voice_id": voice_id,
+            "duration": round(dur, 2)
+        })
+
+        out.extend(samples)
+        total_duration += dur
+
+        # Thêm khoảng lặng giữa các câu thoại (trừ câu cuối cùng)
+        if idx < len(dialogues) - 1 and pause_between > 0:
+            pause_samples = int(pause_between * RATE)
+            out.extend(array.array("h", bytes(pause_samples * 2)))
+            total_duration += pause_between
+
+    with wave.open(str(output_path), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(RATE)
+        w.writeframes(out.tobytes())
+
+    return {
+        "turns": len(turn_details),
+        "duration": round(total_duration, 2),
+        "turn_details": turn_details
+    }
+
+
+# ===================== TEXT CLEANING & FILE EXTRACTION =====================
+def clean_text_spacing(text: str) -> str:
+    """Loại bỏ khoảng trắng thừa, nối dòng gãy trong câu mà không làm hỏng công thức và dấu câu."""
+    if not text:
+        return ""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [line.strip() for line in text.split("\n")]
+    joined = []
+    curr = ""
+    for line in lines:
+        if not line:
+            if curr:
+                joined.append(curr)
+                curr = ""
+            joined.append("")
+            continue
+        if not curr:
+            curr = line
+        else:
+            if curr[-1] in ".?!:;":
+                joined.append(curr)
+                curr = line
+            else:
+                curr = curr + " " + line
+    if curr:
+        joined.append(curr)
+
+    result = "\n".join(joined)
+    result = re.sub(r"[ \t]+", " ", result)
+    result = re.sub(r"\n{3,}", "\n\n", result)
+    return result.strip()
+
+
+def extract_text_from_file(file_bytes: bytes, filename: str) -> str:
+    """Trích xuất văn bản từ tệp .txt, .pdf, .docx."""
+    ext = Path(filename).suffix.lower()
+    if ext == ".txt":
+        for enc in ["utf-8-sig", "utf-8", "utf-16", "cp1252", "latin-1"]:
+            try:
+                return file_bytes.decode(enc)
+            except Exception:
+                continue
+        return file_bytes.decode("utf-8", errors="ignore")
+    elif ext == ".pdf":
+        import io
+        import pypdf
+        reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+        pages_text = []
+        for page in reader.pages:
+            txt = page.extract_text() or ""
+            if txt.strip():
+                pages_text.append(txt.strip())
+        return "\n\n".join(pages_text)
+    elif ext in [".docx", ".doc"]:
+        import io
+        import docx
+        doc = docx.Document(io.BytesIO(file_bytes))
+        paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+        return "\n\n".join(paragraphs)
+    else:
+        raise ValueError(f"Định dạng tệp {ext} chưa được hỗ trợ. Hãy chọn file .txt, .pdf hoặc .docx")
+
+

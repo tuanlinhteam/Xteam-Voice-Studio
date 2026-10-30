@@ -74,6 +74,12 @@ Xteam Voice Studio tích hợp sẵn máy chủ API cục bộ tại `http://127
 | `POST` | `/api/tts/generate-with-subtitles` | Tạo audio kèm phụ đề `.srt` |
 | `POST` | `/api/tts/clone` | Nhân bản giọng nói từ audio mẫu |
 | `POST` | `/api/tts/conversation` | Xử lý kịch bản hội thoại nhiều giọng |
+| `POST` | `/api/utils/extract-text` | Trích xuất nội dung từ file TXT, Word (.docx), PDF |
+| `POST` | `/api/utils/clean-text` | Làm sạch văn bản và nối dòng câu thông minh |
+| `GET` | `/api/dictionary/template.csv` | Tải file CSV mẫu từ điển phát âm |
+| `GET` | `/api/dictionary/export.csv` | Xuất từ điển phát âm ra file CSV (Excel) |
+| `POST` | `/api/dictionary/import` | Nhập danh sách từ điển từ file CSV |
+| `GET` | `/cit-voice-studio.md` | Tài liệu API chuẩn Markdown cho AI Agent (Cursor, Claude, Copilot) |
 
 ---
 
